@@ -11,4 +11,12 @@
  *= require_self
  *= require twitter/bootstrap
  *= require _font-awesome
+ *= require simple-map-d3
  */
+
+path {
+    stroke: white;
+    stroke-width: 0.25px;
+    fill: grey;
+}
+
