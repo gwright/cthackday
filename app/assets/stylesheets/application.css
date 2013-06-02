@@ -20,3 +20,18 @@ path {
     fill: grey;
 }
 
+path.selected {
+  stroke: black;
+  stroke-width: 0.50px;
+  fill: white;
+}
+
+#map {
+  width: 980px;
+  height: 520px
+}
+
+#map, svg {
+  border: 1px solid black;
+  margin: auto;
+}
