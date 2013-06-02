@@ -1,56 +1,66 @@
 d3 = window.d3
 
-d3
-
-#width = 960
-#height = 500
-
-#projection = d3.geo.mercator().center([0, 5]).scale(900).rotate([-180, 0])
-
-####svg   = d3.select("body").append("svg").attr("width", width).attr("height", height)
-#path  = d3.geo.path().projection(projection)
-#g     = svg.append("g")
-
-#hartford =  {"type":"FeatureCollection","properties":{"kind":"state","state":"CT"},"features":[
-#    {"type":"Feature","properties":{"kind":"county","name":"Hartford","state":"CT"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-73.0097,42.0390],[-72.8125,42.0390],[-72.8180,41.9952],[-72.7687,42.0007],[-72.7578,42.0336],[-72.5113,42.0336],[-72.4949,41.9459],[-72.5168,41.8583],[-72.4949,41.8583],[-72.5058,41.8090],[-72.4784,41.8145],[-72.4127,41.6009],[-72.4675,41.5845],[-72.5058,41.6447],[-72.5442,41.6447],[-72.7140,41.6283],[-72.7523,41.5790],[-72.8509,41.5680],[-72.8454,41.5461],[-72.9440,41.5571],[-72.9495,41.6447],[-72.9823,41.6392],[-73.0152,41.7981],[-72.9495,41.8090],[-72.9385,41.8966],[-72.8892,41.9733],[-73.0316,41.9678]]]]}}
-#  ]}
-
-  #d3.json "cttowns.json", (error, states) ->
-  #g.selectAll("path").data(topojson.feature(hartford, hartford.properties).features).enter().append("path").attr "d", path
+# Slurp up the town information. 
+# city.json is an array of objects, one per town
+Towns = window.towns = {}
+d3.json "city.json", (error, towns) ->
+  towns.forEach (t) ->
+    Towns[t['Town']] = t
 
 
-
-  #map = new SimpleMapD3
-  #container: '.map'
-  #datasource: {"type":"FeatureCollection","properties":{"kind":"state","state":"CT"},"features":[
-  
 $(document).ready ->
  
   caption = d3.select('#caption')
 
   showCaption = (d, i) ->
+    d3.selectAll('path.selected').classed('selected', false).attr('d', path)
+    d3.select(this).classed('selected', true).attr('d', larger_path)
+
     town = d.properties["TOWN"]
-    info = window.towns[town]
+    info = Towns[town]
     name = [d.properties["TOWN"], info["Total Grants"]].join(', ')
     caption.html(name)
-    #caption.html(d.properties.length)
 
-  width = 960
-  height = 500
-
-  #projection = d3.geo.albersUsa()
-  projection = d3.geo.mercator().center([-73,41.5]).scale(17000)
+  # Insert an SVG element into the DOM and a group
   svg = d3.select("#map").append("svg").attr("width", width).attr("height", height)
-  path = d3.geo.path().projection(projection)
   g = svg.append("g")
 
-  window.towns = {}
-  d3.json "city.json", (error, cities) ->
-    cities.forEach (c) ->
-      window.towns[c['Town']] = c
+  # This is the default canvas size used by d3.geo
+  width  = 960
+  height = 500
 
+  # The geographic center of Connecticut [longitude, latitude]
+  ct_center = [-72.46, 41.36]
+  offset = [width/2, height/2 + 75]
+
+  # generate a projection function
+  projection = d3.geo
+    .mercator()           # use mercator https://en.wikipedia.org/wiki/Mercator_projection
+    .center(ct_center)    # [longitude, latitude] go to <0,0>
+    .translate(offset)    # translate <0,0> to the center of the default viewport
+    .scale(17000)         # make the *world* fit in a 17000x17000 canvas
+
+  # Create a path generator and configure with our projection function
+  path = d3.geo.path().projection(projection)
+
+  # generate a projection function
+  larger = d3.geo
+    .mercator()           # use mercator https://en.wikipedia.org/wiki/Mercator_projection
+    .center(ct_center)    # [longitude, latitude] go to <0,0>
+    .translate(offset)    # translate <0,0> to the center of the default viewport
+    .scale(25000)         # make the *world* fit in a 17000x17000 canvas
+  larger_path = d3.geo.path().projection(larger)
+
+
+  # Get the topoJSON file describing the town outlines.
   d3.json "cttownstopo.json", (error, towns) ->
+    # towns.objects.cttownsgeo is the object we want to convert to geoJSON
+    # extract features property from the geoJSON data
     features = topojson.feature(towns, towns.objects.cttownsgeo).features
-    g.selectAll("path").data(features).enter().append("path").attr("d", path).on('mouseover', showCaption).on('mousemove',showCaption).on('mouseout', -> caption.html('mouse over a town'))
-#.on('mouseout', -> { caption.html("Mouse over") })
-  #g.on('mouseover',showCaption).on('mouseout', -> { caption.html("Mouse over") })
+
+    # Add all the paths to the group
+    g.selectAll("path")           # establish a group 
+         .data(features)          # bind array of features to DOM elements
+      .enter().append("path")     # append all entered elements as 'path' elements
+          .attr("d", path)        # constructe and apply path for each data element
+          .on('click', showCaption)
