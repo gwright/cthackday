@@ -25,6 +25,15 @@ d3
   #datasource: {"type":"FeatureCollection","properties":{"kind":"state","state":"CT"},"features":[
   
 $(document).ready ->
+ 
+  caption = d3.select('#caption')
+
+  showCaption = (d, i) ->
+    town = d.properties["TOWN"]
+    info = window.towns[town]
+    name = [d.properties["TOWN"], info["Total Grants"]].join(', ')
+    caption.html(name)
+    #caption.html(d.properties.length)
 
   width = 960
   height = 500
@@ -35,5 +44,13 @@ $(document).ready ->
   path = d3.geo.path().projection(projection)
   g = svg.append("g")
 
+  window.towns = {}
+  d3.json "city.json", (error, cities) ->
+    cities.forEach (c) ->
+      window.towns[c['Town']] = c
+
   d3.json "cttownstopo.json", (error, towns) ->
-    g.selectAll("path").data(topojson.feature(towns, towns.objects.cttownsgeo).features).enter().append("path").attr("d", path)
+    features = topojson.feature(towns, towns.objects.cttownsgeo).features
+    g.selectAll("path").data(features).enter().append("path").attr("d", path).on('mouseover', showCaption).on('mousemove',showCaption).on('mouseout', -> caption.html('mouse over a town'))
+#.on('mouseout', -> { caption.html("Mouse over") })
+  #g.on('mouseover',showCaption).on('mouseout', -> { caption.html("Mouse over") })
