@@ -7,23 +7,44 @@ d3.json "city.json", (error, towns) ->
   towns.forEach (t) ->
     Towns[t['Town']] = t
 
+quantize = d3.scale.quantile()
+  .domain([1000000, 5000000, 10000000, 20000000, 50000000, 100000000, 150000000, 200000000, 50000000])
+  .range d3.range(9).map (i) ->
+    "q#{i}-9"
+
+town_info = (geo_properties) ->
+  Towns[geo_properties["TOWN"]]
 
 $(document).ready ->
  
+
+  # Insert an SVG element into the DOM and a group
+  svg = d3.select("#map").append("svg").attr("width", width).attr("height", height)
+  g = svg.append("g")
+
   caption = d3.select('#caption')
 
   showCaption = (d, i) ->
-    d3.selectAll('path.selected').classed('selected', false).attr('d', path)
-    d3.select(this).classed('selected', true).attr('d', larger_path)
+    selection = d3.selectAll('path.selected')
+
+    if d3.select(this).select('.selected').empty
+      d3.select(this).classed('selected', true)
+        .transition()
+          .attr 'transform', (feature) -> zoom(feature, 2)
+    else
+      d3.select(this).classed('selected', false)
+        .transition()
+          .attr 'transform', (feature) -> zoom(feature, 1)
+
+    selection.classed('selected', false)
+      .transition()
+        .attr 'transform', (feature) -> zoom(feature, 1)
 
     town = d.properties["TOWN"]
     info = Towns[town]
     name = [d.properties["TOWN"], info["Total Grants"]].join(', ')
     caption.html(name)
 
-  # Insert an SVG element into the DOM and a group
-  svg = d3.select("#map").append("svg").attr("width", width).attr("height", height)
-  g = svg.append("g")
 
   # This is the default canvas size used by d3.geo
   width  = 960
@@ -41,7 +62,7 @@ $(document).ready ->
     .scale(17000)         # make the *world* fit in a 17000x17000 canvas
 
   # Create a path generator and configure with our projection function
-  path = d3.geo.path().projection(projection)
+  standard_path = d3.geo.path().projection(projection)
 
   # generate a projection function
   larger = d3.geo
@@ -50,6 +71,10 @@ $(document).ready ->
     .translate(offset)    # translate <0,0> to the center of the default viewport
     .scale(25000)         # make the *world* fit in a 17000x17000 canvas
   larger_path = d3.geo.path().projection(larger)
+
+  zoom = (feature, scale) ->
+    [x, y] = standard_path.centroid(feature)
+    "translate(#{x},#{y}) scale(#{scale}) translate(#{-x},#{-y})"
 
 
   # Get the topoJSON file describing the town outlines.
@@ -60,7 +85,14 @@ $(document).ready ->
 
     # Add all the paths to the group
     g.selectAll("path")           # establish a group 
-         .data(features)          # bind array of features to DOM elements
+        .data(features)          # bind array of features to DOM elements
       .enter().append("path")     # append all entered elements as 'path' elements
-          .attr("d", path)        # constructe and apply path for each data element
-          .on('click', showCaption)
+        .attr("d", standard_path)        # constructe and apply path for each data element
+        .on('click', showCaption)
+        .attr('class', (d) ->
+          grants = town_info(d.properties)["Total Grants"]
+          tg = Number(grants.trim().replace(/,/g, ""))
+          klass = quantize( tg )
+          console.log( "#{d.properties["TOWN"]}: #{grants}, #{klass}" )
+          klass
+        )
