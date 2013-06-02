@@ -9,7 +9,7 @@ gem 'pg'
 gem 'haml-rails'
 
 group :develoment do
-  gem 'sqlite3'
+  #gem 'sqlite3'
 end
 
 gem 'haml-rails'
