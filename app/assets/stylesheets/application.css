@@ -15,9 +15,9 @@
  */
 
 path {
-    stroke: white;
+    stroke: grey;
     stroke-width: 0.25px;
-    fill: grey;
+    fill: blue;
 }
 
 path.selected {

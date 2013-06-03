@@ -92,7 +92,5 @@ $(document).ready ->
         .attr('class', (d) ->
           grants = town_info(d.properties)["Total Grants"]
           tg = Number(grants.trim().replace(/,/g, ""))
-          klass = quantize( tg )
-          console.log( "#{d.properties["TOWN"]}: #{grants}, #{klass}" )
-          klass
+          quantize( tg )
         )
